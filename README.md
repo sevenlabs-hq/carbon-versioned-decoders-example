@@ -73,6 +73,8 @@ test/versioned-decoders-example/
 
 Run from the carbon repo root. Uses `node packages/cli/dist/cli.js` with the `parse` command:
 
+On the main Carbon project, run pnpm build and run below
+
 ```bash
 # V1 decoder → carbon-simple-dex-decoder-v1
 node packages/cli/dist/cli.js parse \
