@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "decoder-v1",
+    "decoder-v2",
+    "indexer",
+]
+resolver = "2"

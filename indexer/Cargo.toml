@@ -1,0 +1,27 @@
+[package]
+name = "versioned-decoders-example-indexer"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "versioned-decoders-example-indexer"
+path = "src/main.rs"
+
+[dependencies]
+carbon-core = { git = "https://github.com/sevenlabs-hq/carbon.git", branch = "v1.0-rc" }
+carbon-simple-dex-decoder-v1 = { path = "../decoder-v1" }
+carbon-simple-dex-decoder-v2 = { path = "../decoder-v2" }
+
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+async-trait = "0.1"
+log = "0.4"
+env_logger = "0.11"
+solana-pubkey = "^3.0.0"
+solana-signature = "^3.0.0"
+solana-hash = "^3.0.0"
+solana-instruction = "^3.0.0"
+solana-message = "^3.0.0"
+solana-transaction = "^3.0.0"
+solana-transaction-status = "^3.0.0"
