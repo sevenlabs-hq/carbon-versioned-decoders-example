@@ -151,11 +151,18 @@ impl SwapProcessor {
         match swap.fee_tier {
             None => log::info!(
                 "[V1] Swap | slot={} tx_idx={:?} | amount_in={} min_amount_out={}",
-                swap.slot, swap.tx_idx, swap.amount_in, swap.min_amount_out,
+                swap.slot,
+                swap.tx_idx,
+                swap.amount_in,
+                swap.min_amount_out,
             ),
             Some(tier) => log::info!(
                 "[V2] Swap | slot={} tx_idx={:?} | amount_in={} min_amount_out={} fee_tier={}",
-                swap.slot, swap.tx_idx, swap.amount_in, swap.min_amount_out, tier,
+                swap.slot,
+                swap.tx_idx,
+                swap.amount_in,
+                swap.min_amount_out,
+                tier,
             ),
         }
         Ok(())
@@ -203,9 +210,7 @@ async fn main() -> CarbonResult<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     log::info!("=== Versioned Decoders Example ===");
-    log::info!(
-        "Program upgrade at slot={UPGRADE_SLOT}, tx_index={UPGRADE_TX_INDEX}"
-    );
+    log::info!("Program upgrade at slot={UPGRADE_SLOT}, tx_index={UPGRADE_TX_INDEX}");
     log::info!("V1 decoder: slots < {UPGRADE_SLOT} OR (slot={UPGRADE_SLOT} AND tx_idx < {UPGRADE_TX_INDEX})");
     log::info!("V2 decoder: slots > {UPGRADE_SLOT} OR (slot={UPGRADE_SLOT} AND tx_idx >= {UPGRADE_TX_INDEX})");
     log::info!("");
