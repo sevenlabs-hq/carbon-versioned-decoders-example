@@ -133,48 +133,65 @@ fn make_tx(slot: u64, index: Option<u64>, instruction_data: Vec<u8>) -> Update {
     }))
 }
 
-// ─── Processors ──────────────────────────────────────────────────────────────
+// ─── Resolver ────────────────────────────────────────────────────────────────
 
-struct V1Processor;
-struct V2Processor;
+struct ResolvedSwap {
+    amount_in: u64,
+    min_amount_out: u64,
+    fee_tier: Option<u8>,
+    slot: u64,
+    tx_idx: Option<u64>,
+}
 
-impl Processor<InstructionProcessorInputType<'_, V1Instruction>> for V1Processor {
-    async fn process(
-        &mut self,
-        input: &InstructionProcessorInputType<'_, V1Instruction>,
-    ) -> CarbonResult<()> {
-        let slot = input.metadata.transaction_metadata.slot;
-        let idx = input.metadata.transaction_metadata.index;
-        match input.decoded_instruction {
-            V1Instruction::Swap { data, .. } => {
-                log::info!(
-                    "[V1] Swap | slot={slot} tx_idx={idx:?} | amount_in={} min_amount_out={}",
-                    data.amount_in,
-                    data.min_amount_out,
-                );
-            }
+// Single processor handles both decoder versions by resolving to a common type.
+struct SwapProcessor;
+
+impl SwapProcessor {
+    fn handle(&mut self, swap: ResolvedSwap) -> CarbonResult<()> {
+        match swap.fee_tier {
+            None => log::info!(
+                "[V1] Swap | slot={} tx_idx={:?} | amount_in={} min_amount_out={}",
+                swap.slot, swap.tx_idx, swap.amount_in, swap.min_amount_out,
+            ),
+            Some(tier) => log::info!(
+                "[V2] Swap | slot={} tx_idx={:?} | amount_in={} min_amount_out={} fee_tier={}",
+                swap.slot, swap.tx_idx, swap.amount_in, swap.min_amount_out, tier,
+            ),
         }
         Ok(())
     }
 }
 
-impl Processor<InstructionProcessorInputType<'_, V2Instruction>> for V2Processor {
+impl Processor<InstructionProcessorInputType<'_, V1Instruction>> for SwapProcessor {
+    async fn process(
+        &mut self,
+        input: &InstructionProcessorInputType<'_, V1Instruction>,
+    ) -> CarbonResult<()> {
+        let V1Instruction::Swap { data, .. } = input.decoded_instruction;
+        self.handle(ResolvedSwap {
+            amount_in: data.amount_in,
+            min_amount_out: data.min_amount_out,
+            fee_tier: None,
+            slot: input.metadata.transaction_metadata.slot,
+            tx_idx: input.metadata.transaction_metadata.index,
+        })?;
+        Ok(())
+    }
+}
+
+impl Processor<InstructionProcessorInputType<'_, V2Instruction>> for SwapProcessor {
     async fn process(
         &mut self,
         input: &InstructionProcessorInputType<'_, V2Instruction>,
     ) -> CarbonResult<()> {
-        let slot = input.metadata.transaction_metadata.slot;
-        let idx = input.metadata.transaction_metadata.index;
-        match input.decoded_instruction {
-            V2Instruction::Swap { data, .. } => {
-                log::info!(
-                    "[V2] Swap | slot={slot} tx_idx={idx:?} | amount_in={} min_amount_out={} fee_tier={}",
-                    data.amount_in,
-                    data.min_amount_out,
-                    data.fee_tier,
-                );
-            }
-        }
+        let V2Instruction::Swap { data, .. } = input.decoded_instruction;
+        self.handle(ResolvedSwap {
+            amount_in: data.amount_in,
+            min_amount_out: data.min_amount_out,
+            fee_tier: Some(data.fee_tier),
+            slot: input.metadata.transaction_metadata.slot,
+            tx_idx: input.metadata.transaction_metadata.index,
+        })?;
         Ok(())
     }
 }
@@ -209,8 +226,8 @@ async fn main() -> CarbonResult<()> {
 
     Pipeline::builder()
         .datasource(MockDatasource::new(updates))
-        .instruction_with_filters(V1Decoder, V1Processor, vec![Box::new(v1_filter)])
-        .instruction_with_filters(V2Decoder, V2Processor, vec![Box::new(v2_filter)])
+        .instruction_with_filters(V1Decoder, SwapProcessor, vec![Box::new(v1_filter)])
+        .instruction_with_filters(V2Decoder, SwapProcessor, vec![Box::new(v2_filter)])
         .build()?
         .run()
         .await?;
